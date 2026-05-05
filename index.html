@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SaludCorp - Gestión de Bienestar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
+        
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            scroll-behavior: smooth;
+            background-color: #f8fafc;
+            margin: 0;
+        }
+
+        .sidebar-gradient {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+        }
+
+        .section-card { @apply bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden; }
+        
+        #side-menu { transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .menu-open #side-menu { transform: translateX(0); }
+        .menu-closed #side-menu { transform: translateX(-100%); }
+        #menu-overlay { transition: opacity 0.4s ease; }
+        .menu-closed #menu-overlay { opacity: 0; pointer-events: none; }
+        .menu-open #menu-overlay { opacity: 1; pointer-events: auto; }
+
+        .modal-container { transition: all 0.3s ease; }
+        .modal-hidden { opacity: 0; pointer-events: none; visibility: hidden; }
+        .modal-visible { opacity: 1; pointer-events: auto; visibility: visible; }
+        .modal-content-anim { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .modal-hidden .modal-content-anim { transform: scale(0.9) translateY(20px); }
+        .modal-visible .modal-content-anim { transform: scale(1) translateY(0); }
+
+        .nav-item {
+            @apply flex items-center gap-4 px-6 py-4 rounded-2xl transition-all cursor-pointer text-slate-400 hover:text-white hover:bg-white/5;
+        }
+        .nav-item.active {
+            @apply bg-indigo-600 text-white shadow-lg shadow-indigo-900/40;
+        }
+
+        .action-btn { @apply h-9 w-9 rounded-xl flex items-center justify-center transition-all; }
+
+        #main-fab {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background-color: #4f46e5;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 50;
+            border: none;
+            box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.5);
+        }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body class="min-h-screen menu-closed">
+
+    <!-- Encabezado -->
+    <header class="fixed top-0 left-0 right-0 h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 z-40 px-6 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+            <button onclick="toggleMenu()" class="h-12 w-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white transition-all">
+                <i class="fas fa-bars text-xl"></i>
+            </button>
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 h-8 w-8 rounded-lg flex items-center justify-center text-white">
+                    <i class="fas fa-shield-heart text-sm"></i>
+                </div>
+                <h1 class="text-xl font-black text-slate-900 tracking-tight hidden md:block">SaludCorp</h1>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="hidden sm:flex flex-col items-end">
+                <span id="activeCount" class="text-xs font-bold text-indigo-600 uppercase tracking-widest">0 Usuarios</span>
+                <span class="text-[10px] text-slate-400 font-medium tracking-tight">Gestión Corporativa</span>
+            </div>
+            <div class="h-10 w-10 rounded-full bg-slate-200 border-2 border-white shadow-sm overflow-hidden">
+                <img src="https://ui-avatars.com/api/?name=Admin&background=4f46e5&color=fff" alt="User">
+            </div>
+        </div>
+    </header>
+
+    <div id="menu-overlay" onclick="toggleMenu()" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40"></div>
+
+    <!-- Menú Lateral -->
+    <aside id="side-menu" class="fixed top-0 left-0 bottom-0 w-[300px] sidebar-gradient text-white z-50 p-8 flex flex-col shadow-2xl">
+        <div class="flex items-center justify-between mb-12">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-500 h-9 w-9 rounded-xl flex items-center justify-center">
+                    <i class="fas fa-bars-staggered"></i>
+                </div>
+                <span class="font-bold text-lg">Menú</span>
+            </div>
+            <button onclick="toggleMenu()" class="text-slate-400 hover:text-white transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <nav class="space-y-3 flex-1">
+            <div onclick="navigateTo('dashboard')" id="nav-dashboard" class="nav-item active">
+                <i class="fas fa-layer-group text-lg"></i> 
+                <span class="font-semibold">Dashboard</span>
+            </div>
+            <div onclick="navigateTo('pesajes')" id="nav-pesajes" class="nav-item">
+                <i class="fas fa-history text-lg"></i> 
+                <span class="font-semibold">Control de Pesajes</span>
+            </div>
+            <div onclick="navigateTo('registro')" id="nav-registro" class="nav-item">
+                <i class="fas fa-user-gear text-lg"></i> 
+                <span class="font-semibold">Gestionar Personal</span>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="pt-28 pb-20 px-4 lg:px-10 max-w-[1400px] mx-auto w-full">
+        
+        <!-- SECCIÓN DASHBOARD -->
+        <section id="section-dashboard" class="space-y-8 animate-in fade-in duration-500">
+
+            <!-- Tabla General Ajustada (Compacta) -->
+            <div class="section-card">
+                <div class="px-8 py-5 border-b border-slate-50 flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-slate-900">Análisis General de Salud</h3>
+                    <span class="text-[10px] bg-slate-100 text-slate-500 font-bold px-3 py-1 rounded-full uppercase tracking-tighter">Vista Compacta</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                            <tr>
+                                <th class="px-8 py-3">Nombre</th>
+                                <th class="px-6 py-3 text-center">Peso Ideal</th>
+                                <th class="px-6 py-3 text-center">Peso Actual</th>
+                                <th class="px-6 py-3">Estatus OMS</th>
+                                <th class="px-6 py-3 text-center">Meta Ideal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="masterTableBody" class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Gráfica de Evolución -->
+            <div class="section-card p-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                    <div>
+                        <h3 class="text-2xl font-black text-slate-900 tracking-tight">Evolución de Peso</h3>
+                        <p class="text-sm text-slate-500">Tendencia histórica por colaborador</p>
+                    </div>
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <span class="text-xs font-bold text-slate-400 uppercase">Ver de:</span>
+                        <select id="graphSelect" onchange="updateChart()" class="flex-1 md:flex-none bg-slate-100 border-none rounded-2xl px-6 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 min-w-[200px]">
+                        </select>
+                    </div>
+                </div>
+                <div class="h-[400px] w-full">
+                    <canvas id="weightChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN HISTORIAL PESAJES -->
+        <section id="section-pesajes" class="space-y-8 hidden animate-in slide-in-from-bottom-8 duration-500">
+            <div class="section-card p-8">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8">
+                    <div>
+                        <h4 class="text-2xl font-black text-slate-800">Control de Pesajes</h4>
+                        <p class="text-sm text-slate-500">Modifica o elimina registros históricos</p>
+                    </div>
+                    <div class="flex items-center gap-4 w-full md:w-auto">
+                        <select id="historyFilterSelect" onchange="renderHistoryTable()" class="flex-1 bg-slate-100 border-none rounded-2xl px-6 py-3 text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 min-w-[250px]">
+                        </select>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="text-slate-400 font-bold uppercase text-[10px] border-b border-slate-100">
+                            <tr>
+                                <th class="px-4 pb-5">Fecha</th>
+                                <th class="px-4 pb-5 text-center">Peso (Kg)</th>
+                                <th class="px-4 pb-5 text-center">Peso (Lbs)</th>
+                                <th class="px-4 pb-5 text-center">Estatus</th>
+                                <th class="px-4 pb-5 text-center">IMC</th>
+                                <th class="px-4 pb-5 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody" class="divide-y divide-slate-50"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECCIÓN GESTIÓN PERSONAL -->
+        <section id="section-registro" class="space-y-12 hidden animate-in zoom-in-95 duration-500">
+            <div class="max-w-4xl mx-auto section-card p-10 bg-indigo-600 text-white">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
+                    <div>
+                        <h2 class="text-3xl font-black mb-4">Alta de Personal</h2>
+                        <p class="text-indigo-100 opacity-80">Registra un nuevo colaborador para comenzar su seguimiento.</p>
+                    </div>
+                    <div class="space-y-4 bg-white/10 p-6 rounded-3xl backdrop-blur-md">
+                        <input type="text" id="regName" class="w-full bg-white/20 border border-white/20 rounded-xl px-4 py-3 outline-none focus:bg-white focus:text-slate-900 transition-all font-bold placeholder:text-white/40" placeholder="Nombre Completo">
+                        <input type="number" step="0.01" id="regHeight" class="w-full bg-white/20 border border-white/20 rounded-xl px-4 py-3 outline-none focus:bg-white focus:text-slate-900 transition-all font-bold placeholder:text-white/40" placeholder="Estatura (Metros)">
+                        <button onclick="registerPerson()" class="w-full bg-white text-indigo-600 font-black py-4 rounded-xl hover:bg-indigo-50 transition-all shadow-xl">
+                            REGISTRAR USUARIO
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Respaldo -->
+            <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="section-card p-6 flex flex-col gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center"><i class="fas fa-file-export"></i></div>
+                        <h4 class="font-bold text-slate-800">Exportar Datos</h4>
+                    </div>
+                    <p class="text-xs text-slate-500">Descarga un archivo JSON con toda la información registrada para respaldo.</p>
+                    <button onclick="exportData()" class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl text-sm hover:bg-slate-800 transition-all">DESCARGAR RESPALDO</button>
+                </div>
+                <div class="section-card p-6 flex flex-col gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="h-10 w-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center"><i class="fas fa-file-import"></i></div>
+                        <h4 class="font-bold text-slate-800">Importar Datos</h4>
+                    </div>
+                    <p class="text-xs text-slate-500">Carga un archivo de respaldo previamente descargado (.json).</p>
+                    <label class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition-all cursor-pointer text-center">
+                        CARGAR ARCHIVO
+                        <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
+                    </label>
+                </div>
+            </div>
+
+            <div class="max-w-4xl mx-auto section-card">
+                <div class="px-8 py-6 border-b border-slate-50">
+                    <h3 class="text-xl font-bold text-slate-900">Directorio de Colaboradores</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                            <tr>
+                                <th class="px-8 py-4">Nombre</th>
+                                <th class="px-6 py-4">Estatura</th>
+                                <th class="px-6 py-4">Registros</th>
+                                <th class="px-6 py-4 text-right">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="managementTableBody" class="text-sm divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODALES -->
+    
+    <!-- Modal: Nuevo Pesaje -->
+    <div id="modal-weight" class="fixed inset-0 z-[100] flex items-center justify-center modal-container modal-hidden">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="closeModal('modal-weight')"></div>
+        <div class="modal-content-anim relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mx-4">
+            <div class="bg-indigo-600 p-8 text-white">
+                <h4 class="text-2xl font-black tracking-tight">Nuevo Pesaje</h4>
+            </div>
+            <div class="p-8 space-y-6">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Colaborador</label>
+                    <select id="weightPersonSelect" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 font-bold"></select>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Fecha</label>
+                        <input type="date" id="weightDate" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Peso (Kg)</label>
+                        <input type="number" step="0.1" id="weightInput" class="w-full bg-indigo-50 border-2 border-indigo-100 rounded-3xl px-5 py-6 text-indigo-600 text-4xl font-black text-center">
+                    </div>
+                </div>
+                <button onclick="saveWeight()" class="w-full bg-indigo-600 text-white font-black py-5 rounded-2xl text-lg shadow-xl shadow-indigo-200">GUARDAR REGISTRO</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Editar Registro de Pesaje -->
+    <div id="modal-edit-weight" class="fixed inset-0 z-[100] flex items-center justify-center modal-container modal-hidden">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="closeModal('modal-edit-weight')"></div>
+        <div class="modal-content-anim relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mx-4">
+            <div class="bg-indigo-500 p-8 text-white">
+                <h4 class="text-2xl font-black tracking-tight">Editar Registro</h4>
+            </div>
+            <div class="p-8 space-y-6">
+                <input type="hidden" id="editWeightIndex">
+                <input type="hidden" id="editWeightPersonId">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Fecha</label>
+                    <input type="date" id="editWeightDate" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Peso (Kg)</label>
+                    <input type="number" step="0.1" id="editWeightValue" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold">
+                </div>
+                <div class="flex gap-4">
+                    <button onclick="deleteWeightRecord()" class="flex-1 bg-red-50 text-red-600 font-black py-4 rounded-2xl transition-colors hover:bg-red-100">ELIMINAR</button>
+                    <button onclick="updateWeightRecord()" class="flex-[2] bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg hover:bg-indigo-700">GUARDAR</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Editar Datos Persona -->
+    <div id="modal-edit-person" class="fixed inset-0 z-[100] flex items-center justify-center modal-container modal-hidden">
+        <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="closeModal('modal-edit-person')"></div>
+        <div class="modal-content-anim relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mx-4">
+            <div class="bg-slate-900 p-8 text-white">
+                <h4 class="text-2xl font-black tracking-tight">Editar Colaborador</h4>
+            </div>
+            <div class="p-8 space-y-6">
+                <input type="hidden" id="editPersonId">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Nombre</label>
+                    <input type="text" id="editPersonName" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold">
+                </div>
+                <div>
+                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Estatura (m)</label>
+                    <input type="number" step="0.01" id="editPersonHeight" class="w-full bg-slate-50 border border-slate-200 rounded-2xl px-5 py-4 font-bold">
+                </div>
+                <button onclick="updatePerson()" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg">ACTUALIZAR DATOS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 transform translate-y-40 opacity-0 transition-all duration-500 z-[200]">
+        <div class="bg-slate-900 text-white px-8 py-5 rounded-3xl shadow-2xl flex items-center gap-4">
+            <i id="toastIcon" class="fas fa-check-circle text-emerald-400"></i>
+            <span id="toastMessage" class="font-bold text-sm"></span>
+        </div>
+    </div>
+
+    <button id="main-fab" onclick="openModal('modal-weight')" title="Registrar nuevo peso">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <script>
+        const KG_TO_LBS = 2.20462;
+        const IDEAL_BMI = 24.9; 
+        const STORAGE_KEY = 'corpHealth_v10';
+        
+        let people = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        let chartInstance = null;
+        
+        function getSVDate() {
+            const now = new Date();
+            const svDate = new Date(now.getTime() + (-6 * 60 * 60 * 1000));
+            return svDate.toISOString().split('T')[0];
+        }
+
+        function toggleMenu() {
+            document.body.classList.toggle('menu-open');
+            document.body.classList.toggle('menu-closed');
+        }
+
+        function navigateTo(id) {
+            document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(l => l.classList.remove('active'));
+            document.getElementById(`section-${id}`).classList.remove('hidden');
+            document.getElementById(`nav-${id}`).classList.add('active');
+            if (document.body.classList.contains('menu-open')) toggleMenu();
+            
+            refreshUI();
+            
+            if (id === 'dashboard') {
+                setTimeout(updateChart, 50); 
+            }
+        }
+
+        function openModal(id) {
+            if (id === 'modal-weight' && people.length === 0) {
+                showToast("Primero registre a un colaborador", "error");
+                navigateTo('registro');
+                return;
+            }
+            if (id === 'modal-weight') {
+                updateSelectors();
+                document.getElementById('weightDate').value = getSVDate();
+            }
+            document.getElementById(id).classList.replace('modal-hidden', 'modal-visible');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.replace('modal-visible', 'modal-hidden');
+        }
+
+        function showToast(m, t = "success") {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = m;
+            document.getElementById('toastIcon').className = t === "error" ? "fas fa-trash text-red-400" : "fas fa-check-circle text-emerald-400";
+            toast.classList.replace('translate-y-40', 'translate-y-0');
+            toast.classList.replace('opacity-0', 'opacity-100');
+            setTimeout(() => {
+                toast.classList.replace('translate-y-0', 'translate-y-40');
+                toast.classList.replace('opacity-100', 'opacity-0');
+            }, 3000);
+        }
+
+        // --- LÓGICA DE DATOS ---
+
+        function registerPerson() {
+            const name = document.getElementById('regName').value.trim();
+            const height = parseFloat(document.getElementById('regHeight').value);
+            if (!name || isNaN(height)) return showToast("Faltan datos", "error");
+            people.push({ id: Date.now(), name, height, history: [] });
+            saveData();
+            document.getElementById('regName').value = '';
+            document.getElementById('regHeight').value = '';
+            showToast("Colaborador registrado");
+            renderManagementTable();
+        }
+
+        function openEditPerson(id) {
+            const person = people.find(p => p.id == id);
+            document.getElementById('editPersonId').value = person.id;
+            document.getElementById('editPersonName').value = person.name;
+            document.getElementById('editPersonHeight').value = person.height;
+            openModal('modal-edit-person');
+        }
+
+        function updatePerson() {
+            const id = document.getElementById('editPersonId').value;
+            const name = document.getElementById('editPersonName').value.trim();
+            const height = parseFloat(document.getElementById('editPersonHeight').value);
+            const idx = people.findIndex(p => p.id == id);
+            people[idx].name = name;
+            people[idx].height = height;
+            saveData();
+            closeModal('modal-edit-person');
+            renderManagementTable();
+            showToast("Actualizado");
+        }
+
+        function confirmDeletePerson(id) {
+            if (!confirm("¿Eliminar colaborador y todo su historial?")) return;
+            people = people.filter(p => p.id != id);
+            saveData();
+            renderManagementTable();
+            showToast("Eliminado", "error");
+        }
+
+        function saveWeight() {
+            const id = document.getElementById('weightPersonSelect').value;
+            const kg = parseFloat(document.getElementById('weightInput').value);
+            const date = document.getElementById('weightDate').value;
+            if (!id || isNaN(kg) || !date) return showToast("Datos incompletos", "error");
+            const person = people.find(p => p.id == id);
+            person.history.push({ kg, lbs: kg * KG_TO_LBS, date: date + "T12:00:00" });
+            person.history.sort((a,b) => new Date(a.date) - new Date(b.date));
+            saveData();
+            document.getElementById('weightInput').value = '';
+            closeModal('modal-weight');
+            showToast("Pesaje guardado");
+            refreshUI();
+            updateChart();
+        }
+
+        function openEditWeight(pId, idx) {
+            const person = people.find(p => p.id == pId);
+            const record = person.history[idx];
+            document.getElementById('editWeightPersonId').value = pId;
+            document.getElementById('editWeightIndex').value = idx;
+            document.getElementById('editWeightDate').value = record.date.split('T')[0];
+            document.getElementById('editWeightValue').value = record.kg;
+            openModal('modal-edit-weight');
+        }
+
+        function updateWeightRecord() {
+            const pId = document.getElementById('editWeightPersonId').value;
+            const idx = document.getElementById('editWeightIndex').value;
+            const kg = parseFloat(document.getElementById('editWeightValue').value);
+            const date = document.getElementById('editWeightDate').value;
+            const person = people.find(p => p.id == pId);
+            person.history[idx] = { kg, lbs: kg * KG_TO_LBS, date: date + "T12:00:00" };
+            person.history.sort((a,b) => new Date(a.date) - new Date(b.date));
+            saveData();
+            closeModal('modal-edit-weight');
+            renderHistoryTable();
+            showToast("Registro actualizado");
+        }
+
+        function deleteWeightRecord() {
+            if (!confirm("¿Eliminar este pesaje?")) return;
+            const pId = document.getElementById('editWeightPersonId').value;
+            const idx = document.getElementById('editWeightIndex').value;
+            const person = people.find(p => p.id == pId);
+            person.history.splice(idx, 1);
+            saveData();
+            closeModal('modal-edit-weight');
+            renderHistoryTable();
+            showToast("Pesaje eliminado", "error");
+        }
+
+        // --- EXPORTAR / IMPORTAR ---
+
+        function exportData() {
+            const dataStr = JSON.stringify(people, null, 2);
+            const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+            const exportFileDefaultName = `Respaldo_SaludCorp_${getSVDate()}.json`;
+
+            const linkElement = document.createElement('a');
+            linkElement.setAttribute('href', dataUri);
+            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.click();
+            showToast("Respaldo descargado");
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        people = imported;
+                        saveData();
+                        refreshUI();
+                        updateChart();
+                        showToast("Datos importados con éxito");
+                    } else {
+                        throw new Error("Formato inválido");
+                    }
+                } catch (err) {
+                    showToast("Error al procesar el archivo", "error");
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = ''; // Limpiar input para permitir cargar el mismo archivo
+        }
+
+        // --- RENDERIZADO ---
+
+        function getStatus(b) {
+            if (b < 18.5) return { label: 'Bajo Peso', class: 'bg-blue-50 text-blue-600', code: 'UNDER' };
+            if (b < 25) return { label: 'Saludable', class: 'bg-emerald-50 text-emerald-600', code: 'HEALTHY' };
+            if (b < 30) return { label: 'Sobrepeso', class: 'bg-orange-50 text-orange-600', code: 'OVER' };
+            if (b < 35) return { label: 'Obesidad I', class: 'bg-rose-50 text-rose-600', code: 'OB1' };
+            if (b < 40) return { label: 'Obesidad II', class: 'bg-red-50 text-red-600', code: 'OB2' };
+            return { label: 'Obesidad III', class: 'bg-purple-50 text-purple-600', code: 'OB3' };
+        }
+
+        function renderMasterTable() {
+            const tbody = document.getElementById('masterTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            let healthyCount = 0;
+            let riskCount = 0;
+
+            people.forEach(p => {
+                const last = p.history[p.history.length - 1];
+                const bmi = last ? (last.kg / (p.height * p.height)) : null;
+                const st = bmi ? getStatus(bmi) : { label: 'Sin Datos', class: 'bg-slate-100 text-slate-400', code: 'NONE' };
+                
+                if (st.code === 'HEALTHY') healthyCount++;
+                if (['OB1', 'OB2', 'OB3'].includes(st.code)) riskCount++;
+
+                let metaHTML = '--';
+                let idealLbsStr = '--';
+                if (bmi) {
+                    const idealKg = IDEAL_BMI * (p.height * p.height);
+                    idealLbsStr = (idealKg * KG_TO_LBS).toFixed(1) + ' lbs';
+                    const diffLbs = (last.kg - idealKg) * KG_TO_LBS;
+                    
+                    if (st.code === 'HEALTHY') metaHTML = `<span class="text-emerald-500 font-bold"><i class="fas fa-check-circle"></i> Ideal</span>`;
+                    else if (diffLbs > 0) metaHTML = `<span class="text-rose-600 font-black">- ${Math.abs(diffLbs).toFixed(1)} lbs</span>`;
+                    else metaHTML = `<span class="text-indigo-600 font-black">+ ${Math.abs(diffLbs).toFixed(1)} lbs</span>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50 transition-colors">
+                        <td class="px-8 py-2 font-bold text-slate-800">${p.name}</td>
+                        <td class="px-6 py-2 text-center font-medium text-slate-400">${idealLbsStr}</td>
+                        <td class="px-6 py-2 text-center font-black text-slate-900">${last ? last.lbs.toFixed(1) + ' lbs' : '--'}</td>
+                        <td class="px-6 py-2">
+                            <span class="px-3 py-1 rounded-lg text-[9px] font-black uppercase inline-block ${st.class}">${st.label}</span>
+                        </td>
+                        <td class="px-6 py-2 text-center">${metaHTML}</td>
+                    </tr>
+                `;
+            });
+            
+            document.getElementById('statTotal').innerText = people.length;
+            document.getElementById('statHealthy').innerText = healthyCount;
+            document.getElementById('statRisk').innerText = riskCount;
+            document.getElementById('activeCount').innerText = `${people.length} Usuarios`;
+        }
+
+        function renderManagementTable() {
+            const tbody = document.getElementById('managementTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if(!people.length) {
+                tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-slate-400">No hay personal registrado</td></tr>';
+                return;
+            }
+            people.forEach(p => {
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-8 py-4 font-bold text-slate-800">${p.name}</td>
+                        <td class="px-6 py-4 text-slate-500">${p.height} m</td>
+                        <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">${p.history.length} registros</span></td>
+                        <td class="px-6 py-4 text-right flex justify-end gap-2">
+                            <button onclick="openEditPerson(${p.id})" class="action-btn bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white">
+                                <i class="fas fa-edit text-xs"></i>
+                            </button>
+                            <button onclick="confirmDeletePerson(${p.id})" class="action-btn bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white">
+                                <i class="fas fa-trash text-xs"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function renderHistoryTable() {
+            const select = document.getElementById('historyFilterSelect');
+            const pId = select ? select.value : null;
+            const tbody = document.getElementById('historyTableBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            const person = people.find(p => p.id == pId);
+            if (!person || !person.history.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-slate-400">No hay pesajes registrados para este usuario</td></tr>';
+                return;
+            }
+            [...person.history].reverse().forEach((h, i) => {
+                const originalIdx = person.history.length - 1 - i;
+                const bmi = h.kg / (person.height * person.height);
+                const st = getStatus(bmi);
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="px-4 py-4 font-bold text-slate-600">${h.date.split('T')[0]}</td>
+                        <td class="px-4 py-4 text-center font-medium">${h.kg.toFixed(1)}</td>
+                        <td class="px-4 py-4 text-center font-bold text-slate-900">${h.lbs.toFixed(1)}</td>
+                        <td class="px-4 py-4 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${st.class}">${st.label}</span></td>
+                        <td class="px-4 py-4 text-center font-mono">${bmi.toFixed(1)}</td>
+                        <td class="px-4 py-4 text-right">
+                            <button onclick="openEditWeight(${pId}, ${originalIdx})" class="h-8 w-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-indigo-600 hover:text-white transition-all ml-auto flex items-center justify-center">
+                                <i class="fas fa-pen-to-square text-xs"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function updateSelectors() {
+            const selectors = ['graphSelect', 'weightPersonSelect', 'historyFilterSelect'];
+            selectors.forEach(id => {
+                const s = document.getElementById(id);
+                if (!s) return;
+                const val = s.value;
+                s.innerHTML = people.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+                if (val && s.querySelector(`option[value="${val}"]`)) s.value = val;
+            });
+        }
+
+        function updateChart() {
+            const canvas = document.getElementById('weightChart');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const id = document.getElementById('graphSelect').value;
+            const p = people.find(p => p.id == id);
+            
+            if (chartInstance) chartInstance.destroy();
+            
+            if (!p || p.history.length === 0) {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.font = "14px Plus Jakarta Sans";
+                ctx.fillStyle = "#94a3b8";
+                ctx.textAlign = "center";
+                ctx.fillText("Sin datos históricos para graficar", canvas.width / 2, canvas.height / 2);
+                return;
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: p.history.map(h => h.date.split('T')[0]),
+                    datasets: [{
+                        label: 'Libras',
+                        data: p.history.map(h => h.lbs),
+                        borderColor: '#4f46e5',
+                        backgroundColor: 'rgba(79, 70, 229, 0.1)',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 3,
+                        pointBackgroundColor: '#4f46e5',
+                        pointRadius: 4,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#1e293b',
+                            titleFont: { size: 13, weight: 'bold' },
+                            padding: 12,
+                            cornerRadius: 12,
+                            displayColors: false
+                        }
+                    },
+                    scales: {
+                        y: { 
+                            beginAtZero: false,
+                            grid: { color: '#f1f5f9' },
+                            ticks: { font: { weight: 'bold' } }
+                        },
+                        x: { 
+                            grid: { display: false },
+                            ticks: { font: { weight: 'bold' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function refreshUI() {
+            updateSelectors();
+            renderMasterTable();
+            renderManagementTable();
+            renderHistoryTable();
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
+        }
+
+        window.onload = () => { 
+            refreshUI();
+            updateChart();
+        };
+    </script>
+</body>
+</html>

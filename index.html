@@ -168,14 +168,14 @@
                     <span class="text-[10px] bg-slate-100 text-slate-500 font-bold px-3 py-1 rounded-full uppercase tracking-tighter">Vista Compacta</span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left">
+                    <table class="w-600 text-left">
                         <thead class="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
                             <tr>
-                                <th class="px-8 py-3">Nombre</th>
-                                <th class="px-6 py-3 text-center">Peso Ideal</th>
-                                <th class="px-6 py-3 text-center">Peso Actual</th>
-                                <th class="px-6 py-3">Estatus OMS</th>
-                                <th class="px-6 py-3 text-center">Meta Ideal</th>
+                                <th class="px-4 py-3">Nombre</th>
+                                <th class="px-2 py-3 text-center">Peso Actual</th>
+                                <th class="px-2 py-3">Estatus OMS</th>
+                                <th class="px-2 py-3 text-center">Tendencia</th>
+                                <th class="px-2 py-3 text-center">Meta Ideal</th>
                             </tr>
                         </thead>
                         <tbody id="masterTableBody" class="text-sm divide-y divide-slate-100"></tbody>
@@ -251,14 +251,12 @@
                 </div>
             </div>
 
-            <!-- Botones de Respaldo -->
             <div class="max-w-4xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="section-card p-6 flex flex-col gap-4">
                     <div class="flex items-center gap-3">
                         <div class="h-10 w-10 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center"><i class="fas fa-file-export"></i></div>
                         <h4 class="font-bold text-slate-800">Exportar Datos</h4>
                     </div>
-                    <p class="text-xs text-slate-500">Descarga un archivo JSON con toda la información registrada para respaldo.</p>
                     <button onclick="exportData()" class="w-full py-3 bg-slate-900 text-white font-bold rounded-xl text-sm hover:bg-slate-800 transition-all">DESCARGAR RESPALDO</button>
                 </div>
                 <div class="section-card p-6 flex flex-col gap-4">
@@ -266,7 +264,6 @@
                         <div class="h-10 w-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center"><i class="fas fa-file-import"></i></div>
                         <h4 class="font-bold text-slate-800">Importar Datos</h4>
                     </div>
-                    <p class="text-xs text-slate-500">Carga un archivo de respaldo previamente descargado (.json).</p>
                     <label class="w-full py-3 bg-indigo-600 text-white font-bold rounded-xl text-sm hover:bg-indigo-700 transition-all cursor-pointer text-center">
                         CARGAR ARCHIVO
                         <input type="file" id="importFile" class="hidden" accept=".json" onchange="importData(event)">
@@ -296,8 +293,6 @@
     </main>
 
     <!-- MODALES -->
-    
-    <!-- Modal: Nuevo Pesaje -->
     <div id="modal-weight" class="fixed inset-0 z-[100] flex items-center justify-center modal-container modal-hidden">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="closeModal('modal-weight')"></div>
         <div class="modal-content-anim relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mx-4">
@@ -324,7 +319,7 @@
         </div>
     </div>
 
-    <!-- Modal: Editar Registro de Pesaje -->
+    <!-- Edit Weight Modal -->
     <div id="modal-edit-weight" class="fixed inset-0 z-[100] flex items-center justify-center modal-container modal-hidden">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="closeModal('modal-edit-weight')"></div>
         <div class="modal-content-anim relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mx-4">
@@ -350,7 +345,7 @@
         </div>
     </div>
 
-    <!-- Modal: Editar Datos Persona -->
+    <!-- Edit Person Modal -->
     <div id="modal-edit-person" class="fixed inset-0 z-[100] flex items-center justify-center modal-container modal-hidden">
         <div class="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" onclick="closeModal('modal-edit-person')"></div>
         <div class="modal-content-anim relative w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl overflow-hidden mx-4">
@@ -372,7 +367,6 @@
         </div>
     </div>
 
-    <!-- Notificaciones -->
     <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 transform translate-y-40 opacity-0 transition-all duration-500 z-[200]">
         <div class="bg-slate-900 text-white px-8 py-5 rounded-3xl shadow-2xl flex items-center gap-4">
             <i id="toastIcon" class="fas fa-check-circle text-emerald-400"></i>
@@ -387,15 +381,13 @@
     <script>
         const KG_TO_LBS = 2.20462;
         const IDEAL_BMI = 24.9; 
-        const STORAGE_KEY = 'corpHealth_v10';
+        const STORAGE_KEY = 'corpHealth_v11';
         
-        // Inicialización de datos con respaldo
         let people = [];
         try {
             const rawData = localStorage.getItem(STORAGE_KEY);
             people = rawData ? JSON.parse(rawData) : [];
         } catch(e) {
-            console.error("Error al leer Storage", e);
             people = [];
         }
 
@@ -418,13 +410,8 @@
             document.getElementById(`section-${id}`).classList.remove('hidden');
             document.getElementById(`nav-${id}`).classList.add('active');
             if (document.body.classList.contains('menu-open')) toggleMenu();
-            
-            // Refrescar datos específicos al navegar
             refreshUI();
-            
-            if (id === 'dashboard') {
-                setTimeout(updateChart, 100); 
-            }
+            if (id === 'dashboard') setTimeout(updateChart, 50);
         }
 
         function openModal(id) {
@@ -455,8 +442,6 @@
                 toast.classList.replace('opacity-100', 'opacity-0');
             }, 3000);
         }
-
-        // --- LÓGICA DE DATOS ---
 
         function registerPerson() {
             const name = document.getElementById('regName').value.trim();
@@ -502,11 +487,18 @@
         function saveWeight() {
             const id = document.getElementById('weightPersonSelect').value;
             const kg = parseFloat(document.getElementById('weightInput').value);
-            const date = document.getElementById('weightDate').value;
-            if (!id || isNaN(kg) || !date) return showToast("Datos incompletos", "error");
+            const dateInput = document.getElementById('weightDate').value;
+            if (!id || isNaN(kg) || !dateInput) return showToast("Datos incompletos", "error");
+            
             const person = people.find(p => p.id == id);
-            person.history.push({ kg, lbs: kg * KG_TO_LBS, date: date + "T12:00:00" });
+            person.history.push({ 
+                kg, 
+                lbs: kg * KG_TO_LBS, 
+                date: dateInput + "T12:00:00" 
+            });
+            // Ordenar por fecha cronológica
             person.history.sort((a,b) => new Date(a.date) - new Date(b.date));
+            
             saveData();
             document.getElementById('weightInput').value = '';
             closeModal('modal-weight');
@@ -529,9 +521,13 @@
             const pId = document.getElementById('editWeightPersonId').value;
             const idx = document.getElementById('editWeightIndex').value;
             const kg = parseFloat(document.getElementById('editWeightValue').value);
-            const date = document.getElementById('editWeightDate').value;
+            const dateInput = document.getElementById('editWeightDate').value;
             const person = people.find(p => p.id == pId);
-            person.history[idx] = { kg, lbs: kg * KG_TO_LBS, date: date + "T12:00:00" };
+            person.history[idx] = { 
+                kg, 
+                lbs: kg * KG_TO_LBS, 
+                date: dateInput + "T12:00:00" 
+            };
             person.history.sort((a,b) => new Date(a.date) - new Date(b.date));
             saveData();
             closeModal('modal-edit-weight');
@@ -551,24 +547,18 @@
             showToast("Pesaje eliminado", "error");
         }
 
-        // --- EXPORTAR / IMPORTAR ---
-
         function exportData() {
             const dataStr = JSON.stringify(people, null, 2);
             const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
-            const exportFileDefaultName = `Respaldo_SaludCorp_${getSVDate()}.json`;
-
             const linkElement = document.createElement('a');
             linkElement.setAttribute('href', dataUri);
-            linkElement.setAttribute('download', exportFileDefaultName);
+            linkElement.setAttribute('download', `SaludCorp_${getSVDate()}.json`);
             linkElement.click();
-            showToast("Respaldo descargado");
         }
 
         function importData(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             const reader = new FileReader();
             reader.onload = (e) => {
                 try {
@@ -578,19 +568,13 @@
                         saveData();
                         refreshUI();
                         updateChart();
-                        showToast("Datos importados con éxito");
-                    } else {
-                        throw new Error("Formato inválido");
+                        showToast("Datos importados");
                     }
-                } catch (err) {
-                    showToast("Error al procesar el archivo", "error");
-                }
+                } catch (err) { showToast("Archivo inválido", "error"); }
             };
             reader.readAsText(file);
             event.target.value = ''; 
         }
-
-        // --- RENDERIZADO ---
 
         function getStatus(b) {
             if (b < 18.5) return { label: 'Bajo Peso', class: 'bg-blue-50 text-blue-600', code: 'UNDER' };
@@ -613,20 +597,32 @@
             }
 
             people.forEach(p => {
-                const last = (p.history && p.history.length > 0) ? p.history[p.history.length - 1] : null;
+                const history = p.history || [];
+                const last = history.length > 0 ? history[history.length - 1] : null;
+                const prev = history.length > 1 ? history[history.length - 2] : null;
+                
                 const bmi = last ? (last.kg / (p.height * p.height)) : null;
                 const st = bmi ? getStatus(bmi) : { label: 'Sin Datos', class: 'bg-slate-100 text-slate-400', code: 'NONE' };
                 
                 if (st.code === 'HEALTHY') healthyCount++;
                 if (['OB1', 'OB2', 'OB3'].includes(st.code)) riskCount++;
 
-                let metaHTML = '--';
-                let idealLbsStr = '--';
-                
-                // Cálculo de Peso Ideal (Basado en IMC 24.9)
-                const idealKg = IDEAL_BMI * (p.height * p.height);
-                idealLbsStr = (idealKg * KG_TO_LBS).toFixed(1) + ' lbs';
+                // Lógica de Tendencia
+                let trendHTML = '<span class="text-slate-300">--</span>';
+                if (last && prev) {
+                    const diff = last.lbs - prev.lbs;
+                    if (Math.abs(diff) < 0.1) {
+                        trendHTML = `<span class="text-slate-400 flex items-center justify-center gap-1"><i class="fas fa-minus text-[10px]"></i> Estable</span>`;
+                    } else if (diff > 0) {
+                        trendHTML = `<span class="text-rose-500 flex items-center justify-center gap-1 font-bold"><i class="fas fa-arrow-up text-[10px]"></i> +${diff.toFixed(1)} lbs</span>`;
+                    } else {
+                        trendHTML = `<span class="text-emerald-500 flex items-center justify-center gap-1 font-bold"><i class="fas fa-arrow-down text-[10px]"></i> ${diff.toFixed(1)} lbs</span>`;
+                    }
+                }
 
+                // Cálculo Meta Ideal
+                const idealKg = IDEAL_BMI * (p.height * p.height);
+                let metaHTML = '--';
                 if (last) {
                     const diffLbs = (last.kg - idealKg) * KG_TO_LBS;
                     if (st.code === 'HEALTHY') metaHTML = `<span class="text-emerald-500 font-bold"><i class="fas fa-check-circle"></i> Ideal</span>`;
@@ -636,13 +632,13 @@
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-8 py-3 font-bold text-slate-800">${p.name}</td>
-                        <td class="px-6 py-3 text-center font-medium text-slate-400">${idealLbsStr}</td>
-                        <td class="px-6 py-3 text-center font-black text-slate-900">${last ? last.lbs.toFixed(1) + ' lbs' : '--'}</td>
-                        <td class="px-6 py-3">
+                        <td class="px-4 py-3 font-bold text-slate-800">${p.name}</td>
+                        <td class="px-2 py-3 text-center font-black text-slate-900">${last ? last.lbs.toFixed(1) + ' lbs' : '--'}</td>
+                        <td class="px-2 py-3">
                             <span class="px-3 py-1 rounded-lg text-[9px] font-black uppercase inline-block ${st.class}">${st.label}</span>
                         </td>
-                        <td class="px-6 py-3 text-center">${metaHTML}</td>
+                        <td class="px-2 py-3 text-center text-xs">${trendHTML}</td>
+                        <td class="px-2 py-3 text-center">${metaHTML}</td>
                     </tr>
                 `;
             });
@@ -656,25 +652,16 @@
         function renderManagementTable() {
             const tbody = document.getElementById('managementTableBody');
             if (!tbody) return;
-            tbody.innerHTML = '';
-            if(!people.length) {
-                tbody.innerHTML = '<tr><td colspan="4" class="py-10 text-center text-slate-400">No hay personal registrado</td></tr>';
-                return;
-            }
+            tbody.innerHTML = people.length ? '' : '<tr><td colspan="4" class="py-10 text-center text-slate-400">No hay personal</td></tr>';
             people.forEach(p => {
-                const count = p.history ? p.history.length : 0;
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50">
                         <td class="px-8 py-4 font-bold text-slate-800">${p.name}</td>
                         <td class="px-6 py-4 text-slate-500">${p.height} m</td>
-                        <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">${count} registros</span></td>
+                        <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">${p.history.length} registros</span></td>
                         <td class="px-6 py-4 text-right flex justify-end gap-2">
-                            <button onclick="openEditPerson(${p.id})" class="action-btn bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white">
-                                <i class="fas fa-edit text-xs"></i>
-                            </button>
-                            <button onclick="confirmDeletePerson(${p.id})" class="action-btn bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white">
-                                <i class="fas fa-trash text-xs"></i>
-                            </button>
+                            <button onclick="openEditPerson(${p.id})" class="action-btn bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white"><i class="fas fa-edit text-xs"></i></button>
+                            <button onclick="confirmDeletePerson(${p.id})" class="action-btn bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white"><i class="fas fa-trash text-xs"></i></button>
                         </td>
                     </tr>
                 `;
@@ -682,18 +669,15 @@
         }
 
         function renderHistoryTable() {
-            const select = document.getElementById('historyFilterSelect');
-            const pId = select ? select.value : null;
+            const pId = document.getElementById('historyFilterSelect')?.value;
             const tbody = document.getElementById('historyTableBody');
             if (!tbody) return;
             tbody.innerHTML = '';
-            
             const person = people.find(p => p.id == pId);
-            if (!person || !person.history || person.history.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-slate-400">No hay pesajes registrados para este usuario</td></tr>';
+            if (!person || !person.history.length) {
+                tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-slate-400">Sin historial</td></tr>';
                 return;
             }
-            
             [...person.history].reverse().forEach((h, i) => {
                 const originalIdx = person.history.length - 1 - i;
                 const bmi = h.kg / (person.height * person.height);
@@ -706,7 +690,7 @@
                         <td class="px-4 py-4 text-center"><span class="px-2 py-1 rounded text-[10px] font-bold ${st.class}">${st.label}</span></td>
                         <td class="px-4 py-4 text-center font-mono">${bmi.toFixed(1)}</td>
                         <td class="px-4 py-4 text-right">
-                            <button onclick="openEditWeight(${pId}, ${originalIdx})" class="h-8 w-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-indigo-600 hover:text-white transition-all ml-auto flex items-center justify-center">
+                            <button onclick="openEditWeight(${pId}, ${originalIdx})" class="h-8 w-8 rounded-lg bg-slate-100 text-slate-400 hover:bg-indigo-600 hover:text-white flex items-center justify-center ml-auto">
                                 <i class="fas fa-pen-to-square text-xs"></i>
                             </button>
                         </td>
@@ -716,17 +700,12 @@
         }
 
         function updateSelectors() {
-            const selectors = ['graphSelect', 'weightPersonSelect', 'historyFilterSelect'];
-            selectors.forEach(id => {
+            ['graphSelect', 'weightPersonSelect', 'historyFilterSelect'].forEach(id => {
                 const s = document.getElementById(id);
                 if (!s) return;
-                const currentVal = s.value;
+                const val = s.value;
                 s.innerHTML = people.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-                
-                // Intentar mantener la selección previa si aún existe
-                if (currentVal && people.some(p => p.id == currentVal)) {
-                    s.value = currentVal;
-                }
+                if (val && people.some(p => p.id == val)) s.value = val;
             });
         }
 
@@ -734,20 +713,12 @@
             const canvas = document.getElementById('weightChart');
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
-            const id = document.getElementById('graphSelect').value;
-            const p = people.find(p => p.id == id);
-            
+            const p = people.find(p => p.id == document.getElementById('graphSelect').value);
             if (chartInstance) chartInstance.destroy();
-            
-            if (!p || !p.history || p.history.length === 0) {
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                ctx.font = "14px Plus Jakarta Sans";
-                ctx.fillStyle = "#94a3b8";
-                ctx.textAlign = "center";
-                ctx.fillText("Sin datos históricos para graficar", canvas.width / 2, canvas.height / 2);
+            if (!p || !p.history.length) {
+                ctx.clearRect(0,0,canvas.width,canvas.height);
                 return;
             }
-
             chartInstance = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -758,35 +729,37 @@
                         borderColor: '#4f46e5',
                         backgroundColor: 'rgba(79, 70, 229, 0.1)',
                         fill: true,
-                        tension: 0.4,
-                        borderWidth: 3,
-                        pointBackgroundColor: '#4f46e5',
-                        pointRadius: 4,
-                        pointHoverRadius: 6
+                        tension: 0.4
                     }]
                 },
-                options: {
-                    responsive: true,
+                options: { 
+                    responsive: true, 
                     maintainAspectRatio: false,
-                    plugins: {
-                        legend: { display: false },
-                        tooltip: {
-                            backgroundColor: '#1e293b',
-                            titleFont: { size: 13, weight: 'bold' },
-                            padding: 12,
-                            cornerRadius: 12,
-                            displayColors: false
+                    scales: {
+                        y: {
+                            min: 100, // Ajustado para que comience desde 100
+                            ticks: {
+                                color: '#94a3b8',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            grid: {
+                                color: '#f1f5f9'
+                            }
+                        },
+                        x: {
+                            ticks: {
+                                color: '#94a3b8'
+                            },
+                            grid: {
+                                display: false
+                            }
                         }
                     },
-                    scales: {
-                        y: { 
-                            beginAtZero: false,
-                            grid: { color: '#f1f5f9' },
-                            ticks: { font: { weight: 'bold' } }
-                        },
-                        x: { 
-                            grid: { display: false },
-                            ticks: { font: { weight: 'bold' } }
+                    plugins: {
+                        legend: {
+                            display: false
                         }
                     }
                 }
@@ -800,15 +773,9 @@
             renderHistoryTable();
         }
 
-        function saveData() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
-        }
+        function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(people)); }
 
-        // Asegurar que todo cargue al inicio
-        window.onload = () => { 
-            refreshUI();
-            updateChart();
-        };
+        window.onload = () => { refreshUI(); updateChart(); };
     </script>
 </body>
 </html>

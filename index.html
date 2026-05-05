@@ -131,15 +131,44 @@
         
         <!-- SECCIÓN DASHBOARD -->
         <section id="section-dashboard" class="space-y-8 animate-in fade-in duration-500">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
+                    <div class="h-14 w-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Total Personal</p>
+                        <h4 id="statTotal" class="text-2xl font-black text-slate-900">0</h4>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
+                    <div class="h-14 w-14 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center text-xl">
+                        <i class="fas fa-heart"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Peso Saludable</p>
+                        <h4 id="statHealthy" class="text-2xl font-black text-slate-900">0</h4>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-5">
+                    <div class="h-14 w-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center text-xl">
+                        <i class="fas fa-triangle-exclamation"></i>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-xs font-bold uppercase tracking-wider">Riesgo Obesidad</p>
+                        <h4 id="statRisk" class="text-2xl font-black text-slate-900">0</h4>
+                    </div>
+                </div>
+            </div>
 
-            <!-- Tabla General Ajustada (Compacta) -->
+            <!-- Tabla General -->
             <div class="section-card">
                 <div class="px-8 py-5 border-b border-slate-50 flex justify-between items-center">
                     <h3 class="text-xl font-bold text-slate-900">Análisis General de Salud</h3>
                     <span class="text-[10px] bg-slate-100 text-slate-500 font-bold px-3 py-1 rounded-full uppercase tracking-tighter">Vista Compacta</span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-600 text-left">
+                    <table class="w-full text-left">
                         <thead class="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
                             <tr>
                                 <th class="px-8 py-3">Nombre</th>
@@ -360,7 +389,16 @@
         const IDEAL_BMI = 24.9; 
         const STORAGE_KEY = 'corpHealth_v10';
         
-        let people = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        // Inicialización de datos con respaldo
+        let people = [];
+        try {
+            const rawData = localStorage.getItem(STORAGE_KEY);
+            people = rawData ? JSON.parse(rawData) : [];
+        } catch(e) {
+            console.error("Error al leer Storage", e);
+            people = [];
+        }
+
         let chartInstance = null;
         
         function getSVDate() {
@@ -381,10 +419,11 @@
             document.getElementById(`nav-${id}`).classList.add('active');
             if (document.body.classList.contains('menu-open')) toggleMenu();
             
+            // Refrescar datos específicos al navegar
             refreshUI();
             
             if (id === 'dashboard') {
-                setTimeout(updateChart, 50); 
+                setTimeout(updateChart, 100); 
             }
         }
 
@@ -428,7 +467,7 @@
             document.getElementById('regName').value = '';
             document.getElementById('regHeight').value = '';
             showToast("Colaborador registrado");
-            renderManagementTable();
+            refreshUI();
         }
 
         function openEditPerson(id) {
@@ -448,7 +487,7 @@
             people[idx].height = height;
             saveData();
             closeModal('modal-edit-person');
-            renderManagementTable();
+            refreshUI();
             showToast("Actualizado");
         }
 
@@ -456,7 +495,7 @@
             if (!confirm("¿Eliminar colaborador y todo su historial?")) return;
             people = people.filter(p => p.id != id);
             saveData();
-            renderManagementTable();
+            refreshUI();
             showToast("Eliminado", "error");
         }
 
@@ -496,7 +535,7 @@
             person.history.sort((a,b) => new Date(a.date) - new Date(b.date));
             saveData();
             closeModal('modal-edit-weight');
-            renderHistoryTable();
+            refreshUI();
             showToast("Registro actualizado");
         }
 
@@ -508,7 +547,7 @@
             person.history.splice(idx, 1);
             saveData();
             closeModal('modal-edit-weight');
-            renderHistoryTable();
+            refreshUI();
             showToast("Pesaje eliminado", "error");
         }
 
@@ -548,7 +587,7 @@
                 }
             };
             reader.readAsText(file);
-            event.target.value = ''; // Limpiar input para permitir cargar el mismo archivo
+            event.target.value = ''; 
         }
 
         // --- RENDERIZADO ---
@@ -569,8 +608,12 @@
             let healthyCount = 0;
             let riskCount = 0;
 
+            if (people.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-400">Sin personal registrado</td></tr>';
+            }
+
             people.forEach(p => {
-                const last = p.history[p.history.length - 1];
+                const last = (p.history && p.history.length > 0) ? p.history[p.history.length - 1] : null;
                 const bmi = last ? (last.kg / (p.height * p.height)) : null;
                 const st = bmi ? getStatus(bmi) : { label: 'Sin Datos', class: 'bg-slate-100 text-slate-400', code: 'NONE' };
                 
@@ -579,11 +622,13 @@
 
                 let metaHTML = '--';
                 let idealLbsStr = '--';
-                if (bmi) {
-                    const idealKg = IDEAL_BMI * (p.height * p.height);
-                    idealLbsStr = (idealKg * KG_TO_LBS).toFixed(1) + ' lbs';
+                
+                // Cálculo de Peso Ideal (Basado en IMC 24.9)
+                const idealKg = IDEAL_BMI * (p.height * p.height);
+                idealLbsStr = (idealKg * KG_TO_LBS).toFixed(1) + ' lbs';
+
+                if (last) {
                     const diffLbs = (last.kg - idealKg) * KG_TO_LBS;
-                    
                     if (st.code === 'HEALTHY') metaHTML = `<span class="text-emerald-500 font-bold"><i class="fas fa-check-circle"></i> Ideal</span>`;
                     else if (diffLbs > 0) metaHTML = `<span class="text-rose-600 font-black">- ${Math.abs(diffLbs).toFixed(1)} lbs</span>`;
                     else metaHTML = `<span class="text-indigo-600 font-black">+ ${Math.abs(diffLbs).toFixed(1)} lbs</span>`;
@@ -591,13 +636,13 @@
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-2 font-bold text-slate-800">${p.name}</td>
-                        <td class="px-2 py-2 text-center font-medium text-slate-400">${idealLbsStr}</td>
-                        <td class="px-2 py-2 text-center font-black text-slate-900">${last ? last.lbs.toFixed(1) + ' lbs' : '--'}</td>
-                        <td class="px-2 py-2">
+                        <td class="px-8 py-3 font-bold text-slate-800">${p.name}</td>
+                        <td class="px-6 py-3 text-center font-medium text-slate-400">${idealLbsStr}</td>
+                        <td class="px-6 py-3 text-center font-black text-slate-900">${last ? last.lbs.toFixed(1) + ' lbs' : '--'}</td>
+                        <td class="px-6 py-3">
                             <span class="px-3 py-1 rounded-lg text-[9px] font-black uppercase inline-block ${st.class}">${st.label}</span>
                         </td>
-                        <td class="px-2 py-2 text-center">${metaHTML}</td>
+                        <td class="px-6 py-3 text-center">${metaHTML}</td>
                     </tr>
                 `;
             });
@@ -617,11 +662,12 @@
                 return;
             }
             people.forEach(p => {
+                const count = p.history ? p.history.length : 0;
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50">
                         <td class="px-8 py-4 font-bold text-slate-800">${p.name}</td>
                         <td class="px-6 py-4 text-slate-500">${p.height} m</td>
-                        <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">${p.history.length} registros</span></td>
+                        <td class="px-6 py-4"><span class="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold">${count} registros</span></td>
                         <td class="px-6 py-4 text-right flex justify-end gap-2">
                             <button onclick="openEditPerson(${p.id})" class="action-btn bg-slate-100 text-slate-600 hover:bg-indigo-600 hover:text-white">
                                 <i class="fas fa-edit text-xs"></i>
@@ -641,11 +687,13 @@
             const tbody = document.getElementById('historyTableBody');
             if (!tbody) return;
             tbody.innerHTML = '';
+            
             const person = people.find(p => p.id == pId);
-            if (!person || !person.history.length) {
+            if (!person || !person.history || person.history.length === 0) {
                 tbody.innerHTML = '<tr><td colspan="6" class="py-12 text-center text-slate-400">No hay pesajes registrados para este usuario</td></tr>';
                 return;
             }
+            
             [...person.history].reverse().forEach((h, i) => {
                 const originalIdx = person.history.length - 1 - i;
                 const bmi = h.kg / (person.height * person.height);
@@ -672,9 +720,13 @@
             selectors.forEach(id => {
                 const s = document.getElementById(id);
                 if (!s) return;
-                const val = s.value;
+                const currentVal = s.value;
                 s.innerHTML = people.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-                if (val && s.querySelector(`option[value="${val}"]`)) s.value = val;
+                
+                // Intentar mantener la selección previa si aún existe
+                if (currentVal && people.some(p => p.id == currentVal)) {
+                    s.value = currentVal;
+                }
             });
         }
 
@@ -687,7 +739,7 @@
             
             if (chartInstance) chartInstance.destroy();
             
-            if (!p || p.history.length === 0) {
+            if (!p || !p.history || p.history.length === 0) {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.font = "14px Plus Jakarta Sans";
                 ctx.fillStyle = "#94a3b8";
@@ -752,6 +804,7 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(people));
         }
 
+        // Asegurar que todo cargue al inicio
         window.onload = () => { 
             refreshUI();
             updateChart();

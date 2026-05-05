@@ -632,13 +632,13 @@
 
                 tbody.innerHTML += `
                     <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="px-4 py-3 font-bold text-slate-800">${p.name}</td>
-                        <td class="px-2 py-3 text-center font-black text-slate-900">${last ? last.lbs.toFixed(1) + ' lbs' : '--'}</td>
-                        <td class="px-2 py-3">
+                        <td class="px-4 py-1 font-bold text-slate-800">${p.name}</td>
+                        <td class="px-2 py-1 text-center font-black text-slate-900">${last ? last.lbs.toFixed(1) + ' lbs' : '--'}</td>
+                        <td class="px-2 py-1">
                             <span class="px-3 py-1 rounded-lg text-[9px] font-black uppercase inline-block ${st.class}">${st.label}</span>
                         </td>
-                        <td class="px-2 py-3 text-center text-xs">${trendHTML}</td>
-                        <td class="px-2 py-3 text-center">${metaHTML}</td>
+                        <td class="px-2 py-1 text-center text-xs">${trendHTML}</td>
+                        <td class="px-2 py-1 text-center">${metaHTML}</td>
                     </tr>
                 `;
             });
